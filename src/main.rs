@@ -335,13 +335,14 @@ fn process_metadata(
     let mut vcpkg_triplet = None;
     let mut overlay_triplets_path = None;
 
-    // dbg!(&metadata.workspace_root);
-    // dbg!(&metadata.workspace_metadata);
-    for p in &metadata.packages {
-        // println!("-------------");
-        // dbg!(&p);
+    dbg!(&metadata.workspace_root);
+    dbg!(&metadata.workspace_metadata);
+    // Our current crates metadata is last, so start at the end.
+    for p in metadata.packages.iter().rev() {
+       // println!("-------------");
+       // dbg!(&p);
         if let Ok(v) = serde_json::from_value::<Metadata>(p.metadata.clone()) {
-            // dbg!(&v);
+            dbg!(&v);
             let v = v.vcpkg;
             let is_root_crate = p.id == *root_crate;
 
@@ -399,6 +400,8 @@ fn process_metadata(
                     }
                 }
             }
+            // We've found the dependencies inside of our crates metadata. Ignore metadata of dependencies.
+            break;
         }
     }
 
