@@ -1,6 +1,7 @@
 use anyhow::{bail, Context};
 //use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
+use std::path::Path;
 use std::{
     collections::BTreeMap,
     ffi::OsString,
@@ -335,14 +336,24 @@ fn process_metadata(
     let mut vcpkg_triplet = None;
     let mut overlay_triplets_path = None;
 
+    let workspace_root_path = Path::new(&metadata.workspace_root);
+
     dbg!(&metadata.workspace_root);
     dbg!(&metadata.workspace_metadata);
     // Our current crates metadata is last, so start at the end.
-    for p in metadata.packages.iter().rev() {
-       // println!("-------------");
-       // dbg!(&p);
+    for p in metadata.packages.iter() {
         if let Ok(v) = serde_json::from_value::<Metadata>(p.metadata.clone()) {
+            let manifest_parent_path = Path::new(&p.manifest_path).parent();
+            let package_is_from_workspace = manifest_parent_path.is_some()
+                && manifest_parent_path.unwrap() == workspace_root_path;
+
+            if !package_is_from_workspace {
+                println!("'{}' is not from our workspace. Package manifest path={}. Current workspace={}", p.name, p.manifest_path, metadata.workspace_root);
+                continue;
+            }
+
             dbg!(&v);
+            dbg!(&p.manifest_path);
             let v = v.vcpkg;
             let is_root_crate = p.id == *root_crate;
 
@@ -400,8 +411,6 @@ fn process_metadata(
                     }
                 }
             }
-            // We've found the dependencies inside of our crates metadata. Ignore metadata of dependencies.
-            break;
         }
     }
 
